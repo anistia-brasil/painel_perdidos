@@ -1,0 +1,696 @@
+---
+title: "Painel - Os camponeses e a Batalha dos Perdidos"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    storyboard: true
+    theme: cerulean
+    #social: ["menu"]
+    navbar:
+        - { icon: "fa-instagram", href: "https://www.instagram.com/icmbio.cemave/?hl=pt", align: right }
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+```{r libraries, warning = FALSE, message = FALSE}
+
+library(tidyverse)
+library(data.table)
+library(descr)
+library(RColorBrewer)
+library(hrbrthemes)
+library(kableExtra)
+library(knitr)
+library(htmltools)
+library(htmlwidgets)
+library(DT)
+library(leaflet)
+library(sf)
+library(shiny)
+library(plotly)
+library(ggthemes)
+library(forcats)
+library(crosstalk)
+#library(summarywidget)
+library(rgdal)
+library(foreign)
+library(sp)
+library(stringi)
+library(readxl)
+
+
+options(knitr.table.format = "html")
+```
+
+Informações gerais
+=================
+
+Input {.sidebar}
+-----------------------------------------------------------------------
+
+### 
+
+</br>
+
+```{r, echo=FALSE, fig.cap=" ", out.width = '50%', fig.align='center'}
+
+knitr::include_graphics("fig/relatorio1.png")
+
+```
+
+<center>
+
+[Relatório completo online]()  
+
+[Baixar relatório](https://docs.google.com/document/d/1DyJV5lUKVZ5-hR6dN45TSkqOOZpQ-Mk0/edit?usp=share_link&ouid=103657752665479661258&rtpof=true&sd=true)
+
+</center>
+
+</br>
+
+
+```{r , echo=FALSE, fig.cap=" ", out.width = '80%', fig.align='center'}
+
+knitr::include_graphics("fig/Logo_irene-semfundo.png")
+
+```
+
+</br>
+
+
+
+
+
+</br>
+</br>
+</br>
+
+<center>
+
+ Dúvidas e sugestões:
+ireneanistia@gmail.com
+
+</center>
+
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+### **Proporção de camponeses afetados por gênero** 
+
+
+
+```{r leitura e pré-processamento de dados, include = FALSE}
+
+# Leitura de bases de dados
+
+#ameacadas <- read.csv2("data/ameacadas.csv")
+# ameacadas <- read.csv2("data/Tabela_7.5.csv", header = TRUE, encoding = "UTF-8")
+# marinhas_costeiras <- read.csv2("data/Tabela_8.1.csv", header = TRUE, encoding = "UTF-8")
+#areas_importantes <-  readOGR("data/AI/AI_riqueza_X_AI_concentracao.shp", verbose = FALSE)
+#riqueza <-  readOGR("data/Riqueza/AI_riqueza.shp", verbose = FALSE)
+# concentracao <- readOGR("data/shapes/Areas_de_Concentracao.shp", verbose = FALSE)
+#ucf_integral <-  readOGR("data/UC/UC_fed_junho_2020_PI.shp", verbose = FALSE)
+#ucf_sustentavel <-  readOGR("data/UC/UC_fed_junho_2020_US.shp", verbose = FALSE)
+# spp_ameacadas <- readOGR("data/shapes/Areas_Ameacadas.shp", verbose = FALSE)
+#TI_homologadas <-  readOGR("data/TI_homo/ti_sirgas.shp", verbose = FALSE)
+# iba <-  readOGR("data/IBA/Ibas.shp", verbose = FALSE)
+# aerogeradores <-  readOGR("data/shapes/Aerogeradores.shp", verbose = FALSE)
+# grade_aerogeradores <-  readOGR("data/shapes/Grad_x_Aerogeradores.shp", verbose = FALSE)
+
+
+localidades <- readOGR("data/localidades1.kml", verbose = FALSE)
+# spp_ameacadas <- readOGR("data/shapes/Areas_Ameacadas.shp", verbose = FALSE)
+# aerogeradores <-  readOGR("data/shapes/Aerogeradores.shp", verbose = FALSE)
+
+
+# ----------------------------
+
+# Ajustes de acentuação
+
+# Encoding(aerogeradores$NOME_EOL) <- "UTF-8"
+# Encoding(aerogeradores$PROPRIETAR) <- "UTF-8"
+# Encoding(aerogeradores$OPERACAO) <- "UTF-8"
+
+# Encoding(ameacadas$nome) <- "UTF-8"
+
+
+```
+
+
+```{r graficos gerais 1}
+
+
+# ------------------------- Número de pessoas por gênero
+
+pessoas.genero <- data.frame(
+  genero = c("Homens", "Mulheres"),
+  total = c(100, 150)
+)
+
+
+mycolors <- c("#dbead5", "#A2D8A2")
+
+G1 <- pessoas.genero %>%
+group_by(genero) %>%
+summarise(count = n()) %>%
+        plot_ly(labels = ~genero,
+        values = ~count,
+        marker = list(colors = mycolors)) %>%
+add_pie(hole = 0.4) %>%
+layout(xaxis = list(zeroline = F,
+                    showline = F,
+                    showticklabels = F,
+                    showgrid = F),
+       yaxis = list(zeroline = F,
+                    showline = F,
+                    showticklabels=F,
+                    showgrid=F))
+G1
+
+```
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+### **Número de camponeses afetados por localidade** 
+
+```{r graficos gerais 2}
+
+camponeses.localidade <- data.frame(
+localidade=c("Perdidos", "Vila Boa Vista", "Piçarra", "Xambioá", "Caianos", "Cigana", "Marcelinense"), camponeses=c(35, 43, 11, 55, 27, 47, 9)
+)
+
+
+
+G8 <- ggplot(camponeses.localidade, aes(x = fct_reorder(localidade, camponeses, .desc = F), y = camponeses)) +
+  geom_bar(stat="identity", fill="#69b3a2") +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    panel.grid.minor.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+   legend.position="none" 
+ ) +
+xlab("") +
+ylab("Nº Camponeses")
+
+
+ggplotly(G8)
+
+```
+
+
+
+Column {data-width=200}
+-----------------------------------------------------------------------
+
+### Camponeses diretamente afetados
+
+```{r}
+
+valueBox(260)
+```
+
+### Pessoas direta e indiretamente afetadas
+
+```{r}
+
+valueBox(1200, icon = "fa-map")
+```
+
+### Homens
+
+```{r}
+
+valueBox(125, color = "#F4A952")
+```
+
+### Mulheres
+
+```{r}
+
+valueBox(135, color = "#F4A952")
+```
+
+
+### Localidades envolvidas
+
+
+```{r}
+
+
+valueBox(15, icon = "fas fa-map", color = "#F4A952")
+```
+
+### Regiões envolvidas, distribuídas em
+
+```{r}
+
+valueBox(4, icon = "fa fa-binoculars", color = "#F4A952")
+```
+
+### Unidades Federativas  
+
+```{r}
+
+valueBox(2, icon = "fa-object-group")
+```
+
+
+
+
+Camponeses afetados 
+===============================
+
+Column {data-width=1000}
+-----------------------------------------------------------------------
+
+### **Camponeses afetados na Batalha dos Perdidos - informações pessoais**
+
+</br>
+
+```{r tabela camponeses a}
+
+
+lista_camponesesa <-read.csv2("data/Perdidosa.csv", header = TRUE, encoding = "UTF-8")
+# View(lista_camponesesa)
+
+tab_lista_camponesesa <- datatable(lista_camponesesa,
+                           caption = 'Tabela X. Lista de camponeses afetados pela Batalha dos Perdidos',
+                           colnames = c('Nome', 'CPF', 'Nascimento', 'Protocolo', 'Data', 'Esposa', 'Esposo', 'Pai', 'Mãe', 'Filhos', 'Irmãos', 'Localidade', 'Região'),
+                          
+                           extensions = 'Buttons',
+                           elementId = NULL,
+                           #extensions= "Scroller",
+                           style="bootstrap",
+                           class="stripe hover",
+                           width="80%",
+                           rownames = F,
+                           autoHideNavigation = T,
+                           escape =FALSE,
+                           filter = "top",
+                           options=list(deferRender=TRUE,
+                                   pageLength = 15,
+                                   scrollY=300,
+                                   dom = 'Bfrtip', 
+                         buttons = c('copy', 'csv', 'excel', 'pdf')))
+    
+#formatStyle('Nome',  fontWeight = 'italic', fontStyle = 'italic', `text-align` = 'left') %>% 
+    
+#formatStyle(columns = c("CPF"), `text-align` = 'center') %>%
+
+
+
+tab_lista_camponesesa
+
+```
+
+
+Localidades e regiões envolvidas
+=================
+
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### **Localidades envolvidas** 
+
+
+
+```{r construção dos mapas 2}
+
+mapa <- leaflet() %>%
+  # Base groups
+  setView(lng = -47, lat = -7,
+          zoom = 8) %>%
+ 
+  #addProviderTiles(providers$Esri.WorldImagery, group = "Imagem ESRI") %>%
+  #addProviderTiles(providers$OpenStreetMap.Mapnik, group = "Open Street Map") %>%
+  addProviderTiles(providers$Stamen.TonerLite, group = "Stamen Toner Lite") %>%
+  # Overlay groups
+  # addPolygons(data = areas_importantes,
+  #             color = "#96390e",
+  #             weight = 1,
+  #             group = "Área importante para aves") %>%
+  # addPolygons(data = riqueza,
+  #             color = "#3c39db",
+  #             weight = 1,
+  #             group = "Riqueza de aves") %>%
+  # addPolygons(data = concentracao,
+  #           color = "#006400",
+  #           weight = 1,
+  #           group = "Área de concentração de aves") %>%
+            # popup = paste("Área: ", N_concentracao$Nome, "<br>",
+            #               "UF: ", N_concentracao$estado, "<br>",
+            #               "Descrição: ", N_concentracao$Descricao, "<br>",
+            #               "Fonte(s): ", N_concentracao$Fontes, "<br>")) %>%
+  # addPolygons(data = spp_ameacadas,
+  #                  color = "#FF0000",
+  #                  weight = 1,
+  #                  group = "Ocorrência de espécies de aves ameaçadas") %>%
+  # addCircleMarkers(data = aerogeradores,
+  #                color = "#8B4513",
+  #               radius = 3,
+  #                 weight = 1,
+  #                group = "Aerogeradores",
+  #                popup = paste("Nome: ", aerogeradores$NOME_EOL, "<br>",
+  #                          "Empresa: ", aerogeradores$PROPRIETAR, "<br>",
+  #                           "Em operação: ", aerogeradores$OPERACAO, "<br>",
+  #                           "Altura total (m): ", aerogeradores$ALT_TOTAL, "<br>",
+  #                           "UF: ", aerogeradores$UF, "<br>")) %>%
+  addCircleMarkers(data = localidades,
+                 color = "#8B4513",
+                radius = 6,
+                  weight = 8,
+                 group = "Localidades") %>%
+  # addPolygons(data = grade_aerogeradores,
+  #              color = "#F4A460",
+  #              weight = 1,
+  #              group = "Grade Aerogeradores")  %>%
+
+  # Layers Control
+  addLayersControl(
+    #baseGroups = c(#"Open Street Map",
+                   #"Stamen Toner Lite"
+                   #"Imagem ESRI"),
+    #),
+    overlayGroups = c(#"Área importante para aves",
+                      #"Riqueza de aves",
+                      # "Área de concentração de aves",
+                      # "Ocorrência de espécies de aves ameaçadas",
+                      # "Aerogeradores",
+                      # "Grade Aerogeradores",
+                      "Localidades"
+                    
+                      
+                      ),
+        options = layersControlOptions(collapsed = TRUE, autoZIndex = TRUE)) %>%
+  addEasyButton(easyButton(
+    icon="fa-globe", title="Zoom to Level 4",
+    onClick=JS("function(btn, map){ map.setZoom(4); }"))) %>% 
+  addMeasure(
+    position = "bottomleft",
+    primaryLengthUnit = "m",
+    primaryAreaUnit = "m2",
+    activeColor = "#3D535D",
+    completedColor = "#7D4479")
+
+  
+mapa %>% hideGroup(c("Aerogeradores", "Ocorrência de espécies de aves ameaçadas",
+                      "Grade Aerogeradores"))
+
+
+
+```
+
+
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### **Municípios envolvidos** 
+
+
+```{r mapa das espécies ameaçadas de extinção}
+
+
+mapa <- leaflet() %>%
+  #Base groups
+  setView(lng = -58, lat = -14,
+          zoom = 4) %>%
+  #addProviderTiles(providers$Esri.WorldImagery, group = "Imagem ESRI") %>%
+  addProviderTiles(providers$Stamen.TonerLite, group = "Stamen Toner Lite") %>%
+  #addProviderTiles(providers$OpenStreetMap.Mapnik, group = "Open Street Map") %>%
+
+  #Overlay groups
+    # addPolygons(data = spp_ameacadas,
+    #                color = "#FF0000",
+    #                weight = 1,
+    #                group = "Ocorrência de espécies de aves ameaçadas") %>%
+   
+
+  # addCircleMarkers(data = aerogeradores,
+  #                color = "#8B4513",
+  #                radius = 3,
+  #                weight = 1,
+  #                group = "Aerogeradores",
+  #                
+  #                popup = paste("Nome: ", aerogeradores$NOME_EOL, "<br>",
+  #                          "Empresa: ", aerogeradores$PROPRIETAR, "<br>",
+  #                           "Em operação: ", aerogeradores$OPERACAO, "<br>",
+  #                           "Altura total (m): ", aerogeradores$ALT_TOTAL, "<br>",
+  #                           "UF: ", aerogeradores$UF, "<br>")) %>%
+    
+  # Layers Control
+  addLayersControl(
+    #baseGroups = c(#"Open Street Map ",
+                   #"Stamen Toner Lite (default)"
+                   #"Imagem ESRI"),
+    #),
+    overlayGroups = c(# "Área de concentração de aves",
+                      # "Ocorrência de espécies de aves ameaçadas",
+                      # "Grade Aerogeradores",
+                      # "Aerogeradores"
+                      ),
+        options = layersControlOptions(collapsed = TRUE, autoZIndex = TRUE)) %>%
+  addEasyButton(easyButton(
+    icon="fa-globe", title="Zoom to Level 4",
+    onClick=JS("function(btn, map){ map.setZoom(4); }"))) %>% 
+  addMeasure(
+    position = "bottomleft",
+    primaryLengthUnit = "meters",
+    primaryAreaUnit = "sqmeters",
+    activeColor = "#3D535D",
+    completedColor = "#7D4479")
+
+   
+mapa %>% hideGroup("Aerogeradores")
+
+
+```
+
+
+
+
+Caracterização dos eventos e prejuízos 
+====================
+
+Column 1 {data-width=500}
+-------------------------
+
+### **Impactos decorrentes da Batalha dos Perdidos**
+
+
+```{r tabela camponeses b}
+
+
+lista_camponesesb <-read.csv2("data/Perdidosb.csv", header = TRUE, encoding = "UTF-8")
+# View(lista_camponesesb)
+
+tab_lista_camponesesb <- datatable(lista_camponesesb,
+                           caption = 'Tabela X. Lista de camponeses afetados pela Batalha dos Perdidos',
+                           colnames = c('Nome', 'CPF', 'Localidade', 'Região', 'Vizinhos', 'Citado por', 'Presos', 'Prejuízos', 'Observações'),
+                          
+                           extensions = 'Buttons',
+                           elementId = NULL,
+                           #extensions= "Scroller",
+                           style="bootstrap",
+                           class="stripe hover",
+                           width="80%",
+                           rownames = F,
+                           autoHideNavigation = T,
+                           escape =FALSE,
+                           filter = "top",
+                           options=list(deferRender=TRUE,
+                                   pageLength = 15,
+                                   scrollY=300,
+                                   dom = 'Bfrtip', 
+                         buttons = c('copy', 'csv', 'excel', 'pdf')))
+    
+#formatStyle('Nome',  fontWeight = 'italic', fontStyle = 'italic', `text-align` = 'left') %>% 
+    
+#formatStyle(columns = c("CPF"), `text-align` = 'center') %>%
+
+
+
+tab_lista_camponesesb
+
+```
+
+
+Informações complementares
+====================
+
+
+Column 1 {data-width = 500}
+---------------------------------------------------------------------------------
+
+### **Sobre esse painel e o relatório acerca dos camponeses afetados pela Batalha dos Perdidos**
+
+</br>
+
+Este painel *on-line* integra o *Relatório acerca dos camponeses afetados pela Batalha dos Perdidos*. Para melhor compreender a batalha dos Perdidos, faz-se necessário conhecer um pouco sobre a convencionalmente denominada Guerrilha do Araguaia.
+
+**Guerrilha do Araguaia** 
+
+Fato histórico cujas ações/operações praticadas pelas Forças Armadas (FFAA) tiveram início no ano de 1972 e seguiram até final de 1975.  As ações ocorreram entre parte do Sul do Pará, Goiás (hoje Tocantins) e Maranhão, na região conhecida como Bico do Papagaio.  
+
+No final da década de 60, um grupo de aproximadamente 60 militantes do Partido Comunista do Brasil (PC do B) deslocou-se de diversos estados da federação para a região com o objetivo de integrarem-se aos costumes e trabalho campesino, ganharem a confiança da população local para, na sequência, exporem seus posicionamentos políticos contrários ao regime ditatorial vigente e trabalharem um levante camponês aos moldes do ocorrido na China, com Mao Tse Tung.  
+
+As FFAA, por meio de órgãos de inteligência a ela vinculados, identificaram movimentação de cunho subversivo na área e iniciaram uma série de ações e operações militares com o objetivo da captura dos comunistas.  Nesse momento as FFAA não sabiam a quantidade de militantes envolvidos na preparação do levante rural e criam que os camponeses locais tinham conhecimento e participavam do intento.  A partir das primeiras prisões e torturas compreenderam que os camponeses de nada sabiam, tinham os militantes do PC do B como iguais, migrantes em busca de melhores condições de vida com o diferencial do conhecimento médico, leitura que os levava a prestar assistência a todos.  Ainda assim as FFAA continuaram a perseguição dos camponeses por os terem como grupo de apoio aos comunistas que, nesse momento, permaneciam em fuga pela mata fechada.  Com o passar do tempo, o fracasso das operações militares que estavam despreparadas para atuação na mata fechada e a grande resistência dos comunistas, a captura foi convertida em captura e morte.  Até os dias atuais são identificados mais de 50 militantes mortos ou desaparecidos políticos, sem a devida localização e entrega dos restos mortais aos familiares.  Nesse número encontram-se alguns camponeses.  
+
+
+Durante os anos de 1972 a 1975, centenas de camponeses foram presos, torturados, tiveram suas casas (eram de palha de coco de babaçu), paióis e plantações queimadas ou destruídas para que os comunistas não tivessem o que comer ou onde ter abrigo.  Tiveram seus animais de criação soltos ou mortos (galinhas, porcos, cachorros, burros).  Outra centena foi expulsa de suas terras levados para as vilas vizinhas de onde não podiam sair para procurar alimentos nas roças, caçar ou pescar sem a autorização militar.  Foram construídas bases militares distribuídas pela região e toda a área, em algum momento, sofreu com ações diretas das FFAA.  Nos locais estratégicos havia a permanência de grupos armados, especialmente nas vilas.  Os rios eram monitorados. Nos pontos de maior movimento de embarque e desembarque ocorriam vistoria e retenção dos produtos transportados que, entendiam, pudessem ser úteis aos comunistas.  Dessa forma, a quantidade de farinha, sal, açúcar, querosene e outros eram reduzidos, o que causava prejuízo para às famílias.  
+
+As ações e operações mais intensas aconteceram até o final de 1974.  O ano de 1975 foi utilizado para a concretização da Operação Limpeza que consistiu na retirada da região de tudo que fosse vinculado a dita guerrilha.  Nessa ocasião, entre outras ações, as bases militares foram desmontadas e os restos mortais retirados dos locais inicialmente deixados.  
+
+**Batalha dos Perdidos**   
+
+Esse evento ocorreu num perímetro bem menor, dentro da região em que houve a chamada Guerrilha do Araguaia, no final do ano de 1976.  Pela coincidência da localização e a proximidade da data, as FFAA entenderam tratar-se de uma sequência da Guerrilha do Araguaia, portanto, ato de caráter subversivo atentatório a segurança nacional e dispensou aos camponeses o mesmo tratamento ocorrido durante a guerrilha.  Ocorre que a batalha dos Perdidos tratou-se de uma disputa de terras travada entre fazendeiros locais, desconhecidos residentes em São Paulo (via ação judicial), INCRA e camponeses posseiros.  
+
+
+A área de conflito fazia parte da antiga Fundação Brasil Central, área destinada, via projeto do governo federal, à migração para ocupação de região inóspita do país.  Margeava o Rio Araguaia, pelo estado do Pará.  O projeto, datado da década de 50, não teve sucesso e foi esquecido.  Migrantes chegaram ao local e estabelecem trabalho e moradia.  No início de 1976, o INCRA iniciou tarefa de medição e demarcação das terras (chamados de piques) e informavam à população que ao final do trabalho seriam expulsos de suas terras, se não saíssem por iniciativa própria sairiam “na bala”.  Mais tarde foi provado que havia corrupção dentro do órgão, funcionários estabeleceram relações negociais com fazendeiros e grileiros no intuito de expulsarem parte dos camponeses.  
+
+Os camponeses buscaram solucionar o problema, escolheram um representante que recorreu ao sindicato rural, a federação campesina sediada em Belém, tudo sem resultado positivo.  Em Belém, o advogado da federação orientou no sentido de que resistissem, inclusive “na bala”, pois a lei os amparava.  Duvidaram dessa orientação e decidiram que seu representante deveria ir até o Ministério da Justiça para falar com o ministro.  Nesse ínterim as ameaças aos camponeses tornaram-se mais intensas e, por medo de revide, os trabalhos nos piques passaram a ser acompanhados por policiais militares.  
+
+Parte dos camponeses decidiu pelo enfrentamento armado.  A notícia foi levada (por um dos camponeses) aos policiais militares.  No dia do conflito, policiais militares partiram em busca do grupo revoltoso enquanto esse ia em direção aos policiais.  Encontraram-se, de surpresa, no caminho e com o susto um camponês efetuou o primeiro disparo que acertou um policial.  Os policiais estavam em uma baixada, o que deu aos camponeses vantagem visual.  Imediatamente os policiais começaram a disparar tiros de metralhadora ao passo que os camponeses atiravam com espingardas de recarga.  Ainda assim, em virtude da posição, os camponeses atingiram dois policiais, sendo que um oi levado a óbito.  
+
+Como consequência, dois dias depois as FFAA e mais policiais chegaram à região.  As FFAA entenderam tratar-se de uma continuidade da Guerrilha do Araguaia e dispenaram aos camponeses o mesmo tratamento dado aos camponeses da guerrilha do Araguaia.  Centenas de camponeses foram presos e torturados, outro tanto escondeu-se na mata (alguns com toda a família) por até 30 dias.  Foram entregando-se gradativamente pela falta de possibilidade de resistência e pelo medo de que familiares fossem atingidos, pois tinham a vívida memória do ocorrido durante a Guerrilha do Araguaia.  Um grupo de camponeses foi preso e levado para Belém.  Juntamente com eles parte do clero local e Edna Rodrigues, professora local que teve a escola queimada.  Edna tinha o apelido de Dina, o mesmo que uma das militantes comunistas da guerrilha.  Em Belém foi estuprada e engravidou, o que custou seu casamento.  Ressalta que o ato que desencadeou as perseguições ocorreu no dia 26 de outubro, as prisões e persecuções seguiram até fevereiro do ano seguinte, exatamente na época de colheita e novo plantio.  
+
+Houve Inquérito Policial Militar (IPM) e oferecimento de denúncia com base na lei de segurança nacional.  Quando do aceite da denúncia o Ministério Público (MP) determinou a desqualificação dos atos para crime comum e ordenou envio para o fórum da comarca local.  Isso ocorreu por determinação do procurador geral.  
+
+
+**Os camponeses tiveram como prejuízos:**  
+
+a)	Materiais: - Perda da colheita;
+- Perda do período de nova plantação; e,
+- Perda da terra (abandono por medo)  
+
+a.1) Significado:  - Perder a colheita significava perder a alimentação do ano seguinte.  Com isso também o trabalho que antecede o plantio e o ano de cultivo.  A base alimentar era a farinha que é feita da mandioca cujo início da colheita ocorria em novembro/dezembro e se estendia até março, a depender do tamanho do plantio e da mão de obra disponível.  A mandioca está boa para a feitura da farinha a partir de 1 ano de plantio;  
+
+- Perder todo o trabalho relativo a manutenção da derrubada da mata, ocorrido no decorrer dos anos.  Importa esclarecer que a derrubada da mata era feita via utilização de machados e foices (os camponeses não dispunham de condições para aquisição de outras ferramentas), o que significa que a área limpa para plantio crescia com base na acumulação do trabalho realizado a cada ano.  Por outro lado, a não capina da terra por mais de 30 dias significa a retomada da área pelo mato que demanda novo trabalho, ainda que não tão pesado quanto a derrubada da mata;   
+			
+- Perder a época do novo plantio significava não ter o que comer no ano vindouro, igualmente não ter novas mudas ou sementes para a continuidade nos trabalhos; e,  
+
+- Abandono da terra pelo medo.  
+
+a.2) Morais – Humilhação, medo, insegurança, impotência, fome, temor pelos familiares, desespero.
+
+Column 2 {data-width=500}
+-------------------------
+
+### **Para saber mais**
+
+
+</br>  
+
+<center><b>Algumas normas, diretrizes, orientações e ferramentas relacionadas ao planejamento,  
+implantação e operação de empreendimentos eólicos</b></center>  
+
+</br>
+
+* [Relatório de Rotas e Áreas de Concentração de Aves Migratórias no Brasil](https://www.icmbio.gov.br/cemave/images/stories/Relatorio-rotas-aves-migratorias-compressed-2019.rar) - Versão integral em pdf (4ª edição).
+   
+<center>
+
+![](fig/relatorio2.png){ width=15% }
+
+</center>
+
+</br>  
+
+
+
+* [Planos de Ação Nacional para a Conservação de Espécies de Aves Silvestres Ameaçadas de Extinção](https://www.icmbio.gov.br/cemave/planos-de-acao.html) - Os Planos de Ação Nacional para a Conservação das Espécies da Fauna (PANs) são diretrizes pactuadas com a sociedade para proteger a fauna, priorizando ações de combate às ameaças que põem em risco populações de espécies e ambientes naturais.  
+
+
+* [Mitigating biodiversity impacts associated with solar and wind energy development](https://portals.iucn.org/library/node/49283) - Guia IUCN sobre a mitigação de impactos associados ao uso de energia solar e eólica.  
+
+
+* [Energy Task Force](https://www.cms.int/en/taskforce/energy-task-force) – O “CMS Energy Task Force” é uma plataforma vinculada à [Convenção sobre a Conservação de Espécies de Animais Silvestres Migratórios](https://www.cms.int/en/legalinstrument/cms) formada por diversos atores e voltada a compatibilizar o desenvolvimento e uso de energias renováveis com a conservação de espécies migratórias.
+
+<center>
+
+![](https://www.cms.int/sites/default/files/uploads/energy_task_force_header_with_logo.jpg){ width=80% }
+
+</center>  
+  
+
+* [Sítios Ramsar](https://www.ramsar.org/) – São zonas úmidas de importância internacional, conforme critérios estabelecidos pela Convenção Ramsar. Incluem pântanos, charcos e turfas, ou superfícies cobertas de água, de regime natural ou artificial, permanentes ou temporárias, contendo água parada ou corrente, doce, salobra ou salgada. Abrangem, inclusive, represas, lagos, açudes e áreas marinhas com profundidade de até seis metros, em situação de maré baixa.
+
+* [Convenção sobre a Conservação de Espécies Migratórias de Animais Selvagens](https://eur-lex.europa.eu/PT/legal-content/summary/convention-on-the-conservation-of-migratory-species-of-wild-animals-bonn-convention.html) – É um tratado ambiental das Nações Unidas que fornece uma plataforma global para a conservação e uso sustentável de animais migratórios e seus *habitat*. O CMS reúne os Estados pelos quais passam os animais migratórios, os Estados da área de distribuição, e estabelece a base legal para medidas de conservação coordenadas internacionalmente em toda a área de distribuição migratória.  
+
+* [Portal Nacional de Licenciamento Ambiental – PNLA](http://pnla.mma.gov.br/) - Instrumento de divulgação de informações sobre o licenciamento ambiental em âmbito nacional que visa atender ao disposto na Lei Nº 10.650, de 16 de abril de 2003, que determina o acesso público aos dados e informações ambientais existentes nos órgãos e entidades que compõem o Sistema Nacional de Meio Ambiente – SISNAMA.  
+
+
+* [Planos de Ação Nacional para a Conservação de Espécies de Aves Silvestres Ameaçadas de Extinção - PANs](https://www.gov.br/icmbio/pt-br/assuntos/biodiversidade/pan) - Os Planos de Ação Nacional para a Conservação das Espécies da Fauna (PANs) são diretrizes pactuadas com a sociedade para proteger a fauna, priorizando ações de combate às ameaças que põem em risco populações de espécies e ambientes naturais.  
+
+* [Lei nº 6.938/1981](http://www.planalto.gov.br/ccivil_03/leis/l6938.htm) - Dispõe sobre as diretrizes da Política Nacional de Meio Ambiente.  
+
+
+* [Resolução CONAMA nº 001/1986](chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/http://www.ibama.gov.br/sophia/cnia/legislacao/MMA/RE0001-230186.PDF) – Dispõe sobre critérios básicos e diretrizes gerais para a avaliação de impacto ambiental.  
+
+* [Resolução CONAMA nº 006/1987](chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/http://www.ibama.gov.br/sophia/cnia/legislacao/MMA/RE0006-160987.PDF) - Dispõe sobre o licenciamento ambiental de obras do setor de geração de energia elétrica de grande porte.  
+
+* [Resolução CONAMA nº 237/1997]() - Regulamenta os aspectos de licenciamento ambiental estabelecidos na Política Nacional do Meio Ambiente.  
+
+* [Lei nº 9.605/1998](http://www.planalto.gov.br/ccivil_03/leis/l9605.htm) - Dispõe sobre as sanções penais e administrativas lesivas ao meio ambiente, em seu artigo 60, estabelece a obrigatoriedade do licenciamento ambiental das atividades degradadoras da qualidade ambiental, contendo, inclusive, as penalidades a serem aplicadas ao infrator.  
+
+* [Resolução CONAMA nº 279/2001](chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://www.icmbio.gov.br/cepsul/images/stories/legislacao/Resolucao/2001/res_conama_279_2001_licenciamentoambientalsimplificadoparaempreendimentoseletricos.pdf) – Estabelece procedimento simplificado para o licenciamento ambiental de empreendimentos com impacto ambiental de pequeno porte (usinas hidrelétricas e sistemas associados; usinas termelétricas e sistemas associados; sistemas de transmissão de energia elétrica - linhas de transmissão e subestações e usinas eólicas e outras fontes alternativas de energia), necessários ao incremento da oferta de energia elétrica no País, nos termos do Art. 8º, § 3º, da Medida Provisória nº 2.152-2, de 1º de junho de 2001.  
+
+* [Resolução CONAMA nº 369/2006](https://www.legisweb.com.br/legislacao/?id=104080) - Dispõe sobre os casos excepcionais, de utilidade pública, interesse social ou baixo impacto ambiental, que possibilitam a intervenção ou supressão de vegetação em Área de Preservação Permanente-APP. 
+
+* [Decreto Federal nº 6.753/2009](https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2009/decreto/d6753.htm) - Promulga o Acordo para a Conservação de Albatrozes e Petréis, adotado na Cidade do Cabo, em 2 de fevereiro de 2001.  
+
+
+* [Lei Complementar nº 140/2011](http://www.planalto.gov.br/ccivil_03/leis/lcp/lcp140.htm) - Fixa normas, nos termos dos incisos III, VI e VII do *caput* e do parágrafo único do art. 23 da Constituição Federal, para a cooperação entre a União, os Estados, o Distrito Federal e os Municípios nas ações administrativas decorrentes do exercício da competência comum relativas à proteção das paisagens naturais notáveis, à proteção do meio ambiente, ao combate à poluição em qualquer de suas formas e à preservação das florestas, da fauna e da flora; e altera a Lei no 6.938, de 31 de agosto de 1981.  
+
+
+* [Lei nº 12.651/2012](http://www.planalto.gov.br/ccivil_03/_ato2011-2014/2012/lei/l12651.htm) - Dispõe sobre a proteção da vegetação nativa; altera as Leis nºs 6.938, de 31 de agosto de 1981, 9.393, de 19 de dezembro de 1996, e 11.428, de 22 de dezembro de 2006; revoga as Leis nºs 4.771, de 15 de setembro de 1965, e 7.754, de 14 de abril de 1989, e a Medida Provisória nº 2.166-67, de 24 de agosto de 2001; e dá outras providências.  
+
+* [Decreto Legislativo nº 387/2013](https://www2.camara.leg.br/legin/fed/decleg/2013/decretolegislativo-387-15-outubro-2013-777255-norma-pl.html) - Aprova o texto da Convenção sobre a Conservação das Espécies Migratórias de Animais Silvestres - CMS, assinado em Bonn, em 23 de junho de 1979.  
+
+
+* [Resolução CONAMA nº 462/2014](https://www.ibama.gov.br/component/legislacao/?view=legislacao&legislacao=133565#:~:text=Estabelece%20procedimentos%20para%20o%20licenciamento,fonte%20e%C3%B3lica%20em%20superf%C3%ADcie%20terrestre.) – Estabelece procedimentos para o licenciamento ambiental de empreendimentos de geração de energia elétrica a partir de fonte eólica em superfície terrestre, altera o art. 1º da Resolução CONAMA n.º 279, de 27 de julho de 2001, e dá outras providências.  
+
+* [Portaria MMA nº 444/2014](chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://www.icmbio.gov.br/cepsul/images/stories/legislacao/Portaria/2014/p_mma_444_2014_lista_esp%C3%A9cies_ame%C3%A7adas_extin%C3%A7%C3%A3o.pdf) - Reconhece e apresenta a “Lista Nacional Oficial de Espécies da Fauna Ameaçadas de Extinção”.  
+
+
+* [Portaria MMA nº 43/2014](chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://www.icmbio.gov.br/cepsul/images/stories/legislacao/Portaria/2014/p_mma_43_2014_institui_programa_nacional_conserva%C3%A7%C3%A3o_esp%C3%A9cies_amea%C3%A7adas_extin%C3%A7%C3%A3o_pro-especies.pdf) - Institui o Programa Nacional de Conservação das Espécies Ameaçadas de Extinção - Pró-Espécies, com o objetivo de adotar ações de prevenção, conservação, manejo e gestão, com vistas a minimizar as ameaças e o risco de extinção de espécies.  
+
+
+* [Instrução Normativa ICMBIO nº 07/2014](chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://www.icmbio.gov.br/cepsul/images/stories/legislacao/Instrucao_normativa/2014/in_icmbio_07_2014_procedimentos_icmbio_licenciamento_ambiental.pdf) - Estabelece procedimentos do Instituto Chico Mendes de Conservação da Biodiversidade nos processos de licenciamento ambiental.  
+
+
+* [Instrução Normativa ICMBio/Ibama nº 01/2014](chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://www.icmbio.gov.br/cepsul/images/stories/legislacao/Instrucao_normativa/2014/in_icmbio_ibama_01_2014_procedimentos_entre_icmbio_ibama_manejo_conserva%C3%A7%C3%A3o_fauna_br.pdf) - Estabelece procedimentos entre o ICMBio e o IBAMA para o manejo e a conservação de espécies da fauna silvestre brasileira.  
+
+
+* [Decreto Federal nº 8.437/2015](http://www.planalto.gov.br/ccivil_03/_ato2015-2018/2015/decreto/d8437.htm) - Regulamenta o disposto no art. 7 º, *caput*, inciso XIV, alínea “h”, e parágrafo único, da Lei Complementar nº 140, de 8 de dezembro de 2011, para estabelecer as tipologias de empreendimentos e atividades cujo licenciamento ambiental será de competência da União.  
+
+
+* [Decreto Federal 9.080/2017](http://www.planalto.gov.br/ccivil_03/_ato2015-2018/2017/decreto/D9080.htm) - Promulga a Convenção sobre a Conservação das Espécies Migratórias de Animais Silvestres, de 23 de junho de 1979.  
+
+
+* [Instrução Normativa nº 21/2018](chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://www.gov.br/icmbio/pt-br/assuntos/biodiversidade/pan/saiba-mais/documentos-e-downloads/01_-_in_icmbio_no_21_de_18_de_dez_de_2018_retificada.pdf) - Disciplina os procedimentos para a elaboração, aprovação, publicação, implementação, monitoria, avaliação e revisão de Planos de Ação Nacional para Conservação de Espécies Ameaçadas de Extinção.  
+
+
+* [Instrução Normativa Conjunta nº 08/2019](https://www.in.gov.br/web/dou/-/instrucao-normativa-conjunta-n-8-de-27-de-setembro-de-2019-219919958) - Estabelece procedimentos entre o Instituto Chico Mendes de Conservação da Biodiversidade - Instituto Chico Mendes - e o Instituto Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis – Ibama - relacionados à Resolução nº 428, de 17 de dezembro de 2010, do Conselho Nacional do Meio Ambiente - CONAMA, e dá outras providências no âmbito do licenciamento ambiental federal.  
+
+
+* [Resolução Normativa nº 876/2020](https://www.in.gov.br/en/web/dou/-/resolucao-normativa-n-876-de-10-de-marco-de-2020-247799577) - Estabelece os requisitos e procedimentos necessários à obtenção de outorga de autorização para exploração e à alteração da capacidade instalada de centrais geradoras Eólicas, Fotovoltaicas, Termelétricas e outras fontes alternativas e à comunicação de implantação de centrais geradoras com capacidade instalada reduzida.  
+
+
+* [Instrução Normativa nº 07/2021/GABIN/ICMBIO](chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://sigam.ambiente.sp.gov.br/sigam3/repositorio/570/documentos/Instru%C3%A7%C3%A3o%20Normativa%20n%C2%B0%207,%20de%2020_set_2021_Sistema%20Nacional%20de%20anilhamento%20de%20aves%20silvestres.pdf) - Estabelece normas para a atividade de marcação de aves silvestres na natureza no território nacional e para utilização do Sistema Nacional de Anilhamento de Aves Silvestres - SNA, na forma das diretrizes e condições previstas nesta Instrução Normativa, e regulamenta a disponibilização, o acesso e o uso de dados de anilhamento recebidos pelo Instituto Chico Mendes de Conservação da Biodiversidade por meio do SNA e dá outras providências.  
+
+
+* [NORMAM 11/DPC/2022](https://www.marinha.mil.br/dpc/node/3770) – Normas da autoridade marítima para obras, dragagens, pesquisa e lavra de minerais sob, sobre e às margens das águas jurisicionais brasileiras. Marinha do Brasil.  
+
+
+* [Portaria MMA nº 148/2022](https://www.in.gov.br/en/web/dou/-/portaria-mma-n-148-de-7-de-junho-de-2022-406272733) - Altera os Anexos da Portaria nº 443, de 17 de dezembro de 2014, da Portaria nº 444, de 17 de dezembro de 2014, e da Portaria nº 445, de 17 de dezembro de 2014, referentes à atualização da Lista Nacional de Espécies Ameaçadas de Extinção.  
+
+
+
