@@ -9,6 +9,9 @@ output:
     #social: ["menu"]
     navbar:
         - { icon: "fa-instagram", href: "https://www.instagram.com/icmbio.cemave/?hl=pt", align: right }
+        
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "docs") })       
 ---
 
 ```{r setup, include=FALSE}
